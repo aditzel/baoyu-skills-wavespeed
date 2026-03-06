@@ -2,6 +2,16 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.49.0 - 2026-03-06
+
+### Features
+- `baoyu-format-markdown`: add reader-perspective content analysis phase — analyzes highlights, structure, and formatting issues before applying formatting
+- `baoyu-format-markdown`: restructure workflow from 8 steps to 7 with explicit do/don't formatting principles and completion report
+- `baoyu-translate`: extract Step 2 workflow mechanics to separate reference file for cleaner SKILL.md
+- `baoyu-translate`: expand trigger keywords (改成中文, 快翻, 本地化, etc.) for better skill activation
+- `baoyu-translate`: add proactive warning for long content in quick mode
+- `baoyu-translate`: save frontmatter to `chunks/frontmatter.md` during chunking
+
 ## 1.48.2 - 2026-03-06
 
 ### Features

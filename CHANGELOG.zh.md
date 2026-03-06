@@ -2,6 +2,16 @@
 
 [English](./CHANGELOG.md) | 中文
 
+## 1.49.0 - 2026-03-06
+
+### 新功能
+- `baoyu-format-markdown`：新增读者视角内容分析阶段——在应用格式之前先分析要点、结构和格式问题
+- `baoyu-format-markdown`：重构工作流从 8 步精简为 7 步，新增明确的格式化原则和完成报告模板
+- `baoyu-translate`：将步骤 2 的工作流机制提取到独立参考文件，精简 SKILL.md
+- `baoyu-translate`：扩展触发关键词（改成中文、快翻、本地化等），提升技能激活准确度
+- `baoyu-translate`：快速翻译模式下对长内容主动提示切换建议
+- `baoyu-translate`：分块时将 frontmatter 保存到 `chunks/frontmatter.md`
+
 ## 1.48.2 - 2026-03-06
 
 ### 新功能
