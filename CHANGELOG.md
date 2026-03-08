@@ -2,6 +2,15 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.56.0 - 2026-03-08
+
+### Features
+- `baoyu-article-illustrator`: preset-first selection flow with categorized style presets by content type
+- `baoyu-xhs-images`: streamline workflow from 6 to 4 steps with Smart Confirm (Quick/Customize/Detailed paths)
+
+### Fixes
+- `baoyu-post-to-wechat`: improve image upload reliability with file chooser interception and fallback
+
 ## 1.55.0 - 2026-03-08
 
 ### Features
