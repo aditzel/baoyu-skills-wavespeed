@@ -2,6 +2,17 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.59.0 - 2026-03-09
+
+### Features
+- `baoyu-image-gen`: add batch parallel image generation and provider-level throttling
+
+### Fixes
+- `baoyu-image-gen`: restore Google as default provider when multiple keys available
+
+### Documentation
+- Improve skill documentation clarity
+
 ## 1.58.0 - 2026-03-08
 
 ### Features
