@@ -2,6 +2,17 @@
 
 [English](./CHANGELOG.md) | 中文
 
+## 1.57.0 - 2026-03-08
+
+### 新功能
+- 新增 ClawHub/OpenClaw 发布支持，包含同步脚本和 README 文档
+
+### 重构
+- 为所有 skill 前言添加 openclaw 元数据，兼容 ClawHub 注册表
+- 全部 skill 中将 `SKILL_DIR` 统一重命名为 `baseDir`
+- `baoyu-danger-gemini-web`、`baoyu-danger-x-to-markdown`：使用动态脚本路径显示用法
+- `baoyu-comic`、`baoyu-xhs-images`：通过 skill 接口调用图片生成，不再直接调用脚本
+
 ## 1.56.1 - 2026-03-08
 
 ### 修复

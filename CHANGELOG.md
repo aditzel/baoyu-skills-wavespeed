@@ -2,6 +2,17 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.57.0 - 2026-03-08
+
+### Features
+- Add ClawHub/OpenClaw publishing support with sync script and README documentation
+
+### Refactor
+- Add openclaw metadata to all skill frontmatter for ClawHub registry compatibility
+- Rename `SKILL_DIR` to `baseDir` across all skills for consistency
+- `baoyu-danger-gemini-web`, `baoyu-danger-x-to-markdown`: dynamic script path in usage display
+- `baoyu-comic`, `baoyu-xhs-images`: use skill interface instead of direct script invocation for image generation
+
 ## 1.56.1 - 2026-03-08
 
 ### Fixes
