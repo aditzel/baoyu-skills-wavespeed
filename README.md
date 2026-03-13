@@ -665,10 +665,10 @@ AI-powered generation backends.
 
 #### baoyu-image-gen
 
-AI SDK-based image generation using OpenAI, Google, OpenRouter, DashScope (Aliyun Tongyi Wanxiang), and Replicate APIs. Supports text-to-image, reference images, aspect ratios, and quality presets.
+Wavespeed-backed image generation. Supports text-to-image, reference-image editing, aspect ratios, prompt files, batch jobs, and sequential consistency flows.
 
 ```bash
-# Basic generation (auto-detect provider)
+# Basic generation
 /baoyu-image-gen --prompt "A cute cat" --image cat.png
 
 # With aspect ratio
@@ -677,19 +677,14 @@ AI SDK-based image generation using OpenAI, Google, OpenRouter, DashScope (Aliyu
 # High quality (2k)
 /baoyu-image-gen --prompt "A banner" --image banner.png --quality 2k
 
-# Specific provider
+# Explicit model
+/baoyu-image-gen --prompt "A cat" --image cat.png --model bytedance/seedream-v5.0-lite
+
+# Legacy profile aliases remain available
 /baoyu-image-gen --prompt "A cat" --image cat.png --provider openai
+/baoyu-image-gen --prompt "A cat" --image cat.png --provider google
 
-# OpenRouter
-/baoyu-image-gen --prompt "A cat" --image cat.png --provider openrouter
-
-# DashScope (Aliyun Tongyi Wanxiang)
-/baoyu-image-gen --prompt "一只可爱的猫" --image cat.png --provider dashscope
-
-# Replicate
-/baoyu-image-gen --prompt "A cat" --image cat.png --provider replicate
-
-# With reference images (Google, OpenAI, OpenRouter, or Replicate)
+# With reference images
 /baoyu-image-gen --prompt "Make it blue" --image out.png --ref source.png
 ```
 
@@ -699,36 +694,24 @@ AI SDK-based image generation using OpenAI, Google, OpenRouter, DashScope (Aliyu
 | `--prompt`, `-p` | Prompt text |
 | `--promptfiles` | Read prompt from files (concatenated) |
 | `--image` | Output image path (required) |
-| `--provider` | `google`, `openai`, `openrouter`, `dashscope` or `replicate` (default: auto-detect; prefers google) |
-| `--model`, `-m` | Model ID |
+| `--provider` | `wavespeed`, `google`, `openai`, `openrouter`, `dashscope` or `replicate` (legacy profile alias; all route through Wavespeed) |
+| `--model`, `-m` | Wavespeed model ID |
 | `--ar` | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`) |
 | `--size` | Size (e.g., `1024x1024`) |
 | `--quality` | `normal` or `2k` (default: `2k`) |
-| `--ref` | Reference images (Google, OpenAI, OpenRouter or Replicate) |
+| `--ref` | Reference images (routed to Wavespeed edit or edit-sequential) |
 
 **Environment Variables** (see [Environment Configuration](#environment-configuration) for setup):
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | - |
-| `OPENROUTER_API_KEY` | OpenRouter API key | - |
-| `GOOGLE_API_KEY` | Google API key | - |
-| `DASHSCOPE_API_KEY` | DashScope API key (Aliyun) | - |
-| `REPLICATE_API_TOKEN` | Replicate API token | - |
-| `OPENAI_IMAGE_MODEL` | OpenAI model | `gpt-image-1.5` |
-| `OPENROUTER_IMAGE_MODEL` | OpenRouter model | `google/gemini-3.1-flash-image-preview` |
-| `GOOGLE_IMAGE_MODEL` | Google model | `gemini-3-pro-image-preview` |
-| `DASHSCOPE_IMAGE_MODEL` | DashScope model | `z-image-turbo` |
-| `REPLICATE_IMAGE_MODEL` | Replicate model | `google/nano-banana-pro` |
-| `OPENAI_BASE_URL` | Custom OpenAI endpoint | - |
-| `OPENROUTER_BASE_URL` | Custom OpenRouter endpoint | `https://openrouter.ai/api/v1` |
-| `GOOGLE_BASE_URL` | Custom Google endpoint | - |
-| `DASHSCOPE_BASE_URL` | Custom DashScope endpoint | - |
-| `REPLICATE_BASE_URL` | Custom Replicate endpoint | - |
+| `WAVESPEED_API_KEY` | Wavespeed API key | - |
+| `WAVESPEED_IMAGE_MODEL` | Default model override | `bytedance/seedream-v5.0-lite` |
 
-**Provider Auto-Selection**:
-1. If `--provider` specified → use it
-2. If only one API key available → use that provider
-3. If multiple available → default to Google
+**Routing**:
+1. No `--ref`, `--n 1` → Wavespeed `generate`
+2. `--ref`, `--n 1` → Wavespeed `edit`
+3. No `--ref`, `--n > 1` → Wavespeed `generate-sequential`
+4. `--ref`, `--n > 1` → Wavespeed `edit-sequential`
 
 #### baoyu-danger-gemini-web
 
@@ -952,7 +935,7 @@ Custom style descriptions are also accepted, e.g., `--style "poetic and lyrical"
 Some skills require API keys or custom configuration. Environment variables can be set in `.env` files:
 
 **Load Priority** (higher priority overrides lower):
-1. CLI environment variables (e.g., `OPENAI_API_KEY=xxx /baoyu-image-gen ...`)
+1. CLI environment variables (e.g., `WAVESPEED_API_KEY=xxx /baoyu-image-gen ...`)
 2. `process.env` (system environment)
 3. `<cwd>/.baoyu-skills/.env` (project-level)
 4. `~/.baoyu-skills/.env` (user-level)
@@ -965,30 +948,9 @@ mkdir -p ~/.baoyu-skills
 
 # Create .env file
 cat > ~/.baoyu-skills/.env << 'EOF'
-# OpenAI
-OPENAI_API_KEY=sk-xxx
-OPENAI_IMAGE_MODEL=gpt-image-1.5
-# OPENAI_BASE_URL=https://api.openai.com/v1
-
-# OpenRouter
-OPENROUTER_API_KEY=sk-or-xxx
-OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
-# OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-
-# Google
-GOOGLE_API_KEY=xxx
-GOOGLE_IMAGE_MODEL=gemini-3-pro-image-preview
-# GOOGLE_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-
-# DashScope (Aliyun Tongyi Wanxiang)
-DASHSCOPE_API_KEY=sk-xxx
-DASHSCOPE_IMAGE_MODEL=z-image-turbo
-# DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
-
-# Replicate
-REPLICATE_API_TOKEN=r8_xxx
-REPLICATE_IMAGE_MODEL=google/nano-banana-pro
-# REPLICATE_BASE_URL=https://api.replicate.com
+# Wavespeed
+WAVESPEED_API_KEY=ws_xxx
+WAVESPEED_IMAGE_MODEL=bytedance/seedream-v5.0-lite
 EOF
 ```
 

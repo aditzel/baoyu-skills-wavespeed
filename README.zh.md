@@ -665,10 +665,10 @@ AI 驱动的生成后端。
 
 #### baoyu-image-gen
 
-基于 AI SDK 的图像生成，支持 OpenAI、Google、OpenRouter、DashScope（阿里通义万相）和 Replicate API。支持文生图、参考图、宽高比和质量预设。
+基于 Wavespeed 的图像生成。支持文生图、参考图编辑、宽高比、提示词文件、批量任务和顺序一致性生成。
 
 ```bash
-# 基础生成（自动检测服务商）
+# 基础生成
 /baoyu-image-gen --prompt "一只可爱的猫" --image cat.png
 
 # 指定宽高比
@@ -677,19 +677,14 @@ AI 驱动的生成后端。
 # 高质量（2k 分辨率）
 /baoyu-image-gen --prompt "横幅图" --image banner.png --quality 2k
 
-# 指定服务商
+# 指定模型
+/baoyu-image-gen --prompt "一只猫" --image cat.png --model bytedance/seedream-v5.0-lite
+
+# 保留旧的 profile 别名
 /baoyu-image-gen --prompt "一只猫" --image cat.png --provider openai
+/baoyu-image-gen --prompt "一只猫" --image cat.png --provider google
 
-# OpenRouter
-/baoyu-image-gen --prompt "一只猫" --image cat.png --provider openrouter
-
-# DashScope（阿里通义万相）
-/baoyu-image-gen --prompt "一只可爱的猫" --image cat.png --provider dashscope
-
-# Replicate
-/baoyu-image-gen --prompt "一只猫" --image cat.png --provider replicate
-
-# 带参考图（Google、OpenAI、OpenRouter 或 Replicate）
+# 带参考图
 /baoyu-image-gen --prompt "把它变成蓝色" --image out.png --ref source.png
 ```
 
@@ -699,36 +694,24 @@ AI 驱动的生成后端。
 | `--prompt`, `-p` | 提示词文本 |
 | `--promptfiles` | 从文件读取提示词（多文件拼接） |
 | `--image` | 输出图片路径（必需） |
-| `--provider` | `google`、`openai`、`openrouter`、`dashscope` 或 `replicate`（默认：自动检测，优先 google） |
-| `--model`, `-m` | 模型 ID |
+| `--provider` | `wavespeed`、`google`、`openai`、`openrouter`、`dashscope` 或 `replicate`（兼容旧 profile，实际都通过 Wavespeed） |
+| `--model`, `-m` | Wavespeed 模型 ID |
 | `--ar` | 宽高比（如 `16:9`、`1:1`、`4:3`） |
 | `--size` | 尺寸（如 `1024x1024`） |
 | `--quality` | `normal` 或 `2k`（默认：`2k`） |
-| `--ref` | 参考图片（Google、OpenAI、OpenRouter 或 Replicate） |
+| `--ref` | 参考图片（会路由到 Wavespeed 的 edit 或 edit-sequential） |
 
 **环境变量**（配置方法见[环境配置](#环境配置)）：
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `OPENAI_API_KEY` | OpenAI API 密钥 | - |
-| `OPENROUTER_API_KEY` | OpenRouter API 密钥 | - |
-| `GOOGLE_API_KEY` | Google API 密钥 | - |
-| `DASHSCOPE_API_KEY` | DashScope API 密钥（阿里云） | - |
-| `REPLICATE_API_TOKEN` | Replicate API Token | - |
-| `OPENAI_IMAGE_MODEL` | OpenAI 模型 | `gpt-image-1.5` |
-| `OPENROUTER_IMAGE_MODEL` | OpenRouter 模型 | `google/gemini-3.1-flash-image-preview` |
-| `GOOGLE_IMAGE_MODEL` | Google 模型 | `gemini-3-pro-image-preview` |
-| `DASHSCOPE_IMAGE_MODEL` | DashScope 模型 | `z-image-turbo` |
-| `REPLICATE_IMAGE_MODEL` | Replicate 模型 | `google/nano-banana-pro` |
-| `OPENAI_BASE_URL` | 自定义 OpenAI 端点 | - |
-| `OPENROUTER_BASE_URL` | 自定义 OpenRouter 端点 | `https://openrouter.ai/api/v1` |
-| `GOOGLE_BASE_URL` | 自定义 Google 端点 | - |
-| `DASHSCOPE_BASE_URL` | 自定义 DashScope 端点 | - |
-| `REPLICATE_BASE_URL` | 自定义 Replicate 端点 | - |
+| `WAVESPEED_API_KEY` | Wavespeed API 密钥 | - |
+| `WAVESPEED_IMAGE_MODEL` | 默认模型覆盖 | `bytedance/seedream-v5.0-lite` |
 
-**服务商自动选择**：
-1. 如果指定了 `--provider` → 使用指定的
-2. 如果只有一个 API 密钥 → 使用对应服务商
-3. 如果多个可用 → 默认使用 Google
+**路由规则**：
+1. 无 `--ref` 且 `--n 1` → Wavespeed `generate`
+2. 有 `--ref` 且 `--n 1` → Wavespeed `edit`
+3. 无 `--ref` 且 `--n > 1` → Wavespeed `generate-sequential`
+4. 有 `--ref` 且 `--n > 1` → Wavespeed `edit-sequential`
 
 #### baoyu-danger-gemini-web
 
@@ -952,7 +935,7 @@ AI 驱动的生成后端。
 部分技能需要 API 密钥或自定义配置。环境变量可以在 `.env` 文件中设置：
 
 **加载优先级**（高优先级覆盖低优先级）：
-1. 命令行环境变量（如 `OPENAI_API_KEY=xxx /baoyu-image-gen ...`）
+1. 命令行环境变量（如 `WAVESPEED_API_KEY=xxx /baoyu-image-gen ...`）
 2. `process.env`（系统环境变量）
 3. `<cwd>/.baoyu-skills/.env`（项目级）
 4. `~/.baoyu-skills/.env`（用户级）
@@ -965,30 +948,9 @@ mkdir -p ~/.baoyu-skills
 
 # 创建 .env 文件
 cat > ~/.baoyu-skills/.env << 'EOF'
-# OpenAI
-OPENAI_API_KEY=sk-xxx
-OPENAI_IMAGE_MODEL=gpt-image-1.5
-# OPENAI_BASE_URL=https://api.openai.com/v1
-
-# OpenRouter
-OPENROUTER_API_KEY=sk-or-xxx
-OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
-# OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-
-# Google
-GOOGLE_API_KEY=xxx
-GOOGLE_IMAGE_MODEL=gemini-3-pro-image-preview
-# GOOGLE_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-
-# DashScope（阿里通义万相）
-DASHSCOPE_API_KEY=sk-xxx
-DASHSCOPE_IMAGE_MODEL=z-image-turbo
-# DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
-
-# Replicate
-REPLICATE_API_TOKEN=r8_xxx
-REPLICATE_IMAGE_MODEL=google/nano-banana-pro
-# REPLICATE_BASE_URL=https://api.replicate.com
+# Wavespeed
+WAVESPEED_API_KEY=ws_xxx
+WAVESPEED_IMAGE_MODEL=bytedance/seedream-v5.0-lite
 EOF
 ```
 

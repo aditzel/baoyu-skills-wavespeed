@@ -1,4 +1,4 @@
-export type Provider = "google" | "openai" | "openrouter" | "dashscope" | "replicate";
+export type Provider = "wavespeed" | "google" | "openai" | "openrouter" | "dashscope" | "replicate";
 export type Quality = "normal" | "2k";
 
 export type CliArgs = {
@@ -48,6 +48,7 @@ export type ExtendConfig = {
   default_aspect_ratio: string | null;
   default_image_size: "1K" | "2K" | "4K" | null;
   default_model: {
+    wavespeed: string | null;
     google: string | null;
     openai: string | null;
     openrouter: string | null;

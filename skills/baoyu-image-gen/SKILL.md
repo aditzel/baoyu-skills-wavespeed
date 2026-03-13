@@ -1,6 +1,6 @@
 ---
 name: baoyu-image-gen
-description: AI image generation with OpenAI, Google, OpenRouter, DashScope and Replicate APIs. Supports text-to-image, reference images, aspect ratios, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
+description: AI image generation through Wavespeed. Supports text-to-image, reference-image editing, aspect ratios, prompt files, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
 version: 1.56.2
 metadata:
   openclaw:
@@ -11,9 +11,9 @@ metadata:
         - npx
 ---
 
-# Image Generation (AI SDK)
+# Image Generation (Wavespeed)
 
-Official API-based image generation. Supports OpenAI, Google, OpenRouter, DashScope (阿里通义万象) and Replicate providers.
+Wavespeed-backed image generation wrapper. The published skill uses `wavespeed-cli` for portability. If a host agent already has Wavespeed MCP tools connected, that is an equivalent backend, but the script path remains the canonical contract for this skill.
 
 ## Script Directory
 
@@ -22,40 +22,16 @@ Official API-based image generation. Supports OpenAI, Google, OpenRouter, DashSc
 2. Script path = `{baseDir}/scripts/main.ts`
 3. Resolve `${BUN_X}` runtime: if `bun` installed → `bun`; if `npx` available → `npx -y bun`; else suggest installing bun
 
-## Step 0: Load Preferences ⛔ BLOCKING
+## Preferences
 
-**CRITICAL**: This step MUST complete BEFORE any image generation. Do NOT skip or defer.
-
-Check EXTEND.md existence (priority: project → user):
-
-```bash
-# macOS, Linux, WSL, Git Bash
-test -f .baoyu-skills/baoyu-image-gen/EXTEND.md && echo "project"
-test -f "${XDG_CONFIG_HOME:-$HOME/.config}/baoyu-skills/baoyu-image-gen/EXTEND.md" && echo "xdg"
-test -f "$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md" && echo "user"
-```
-
-```powershell
-# PowerShell (Windows)
-if (Test-Path .baoyu-skills/baoyu-image-gen/EXTEND.md) { "project" }
-$xdg = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { "$HOME/.config" }
-if (Test-Path "$xdg/baoyu-skills/baoyu-image-gen/EXTEND.md") { "xdg" }
-if (Test-Path "$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md") { "user" }
-```
-
-| Result | Action |
-|--------|--------|
-| Found | Load, parse, apply settings. If `default_model.[provider]` is null → ask model only (Flow 2) |
-| Not found | ⛔ Run first-time setup ([references/config/first-time-setup.md](references/config/first-time-setup.md)) → Save EXTEND.md → Then continue |
-
-**CRITICAL**: If not found, complete the full setup (provider + model + quality + save location) using AskUserQuestion BEFORE generating any images. Generation is BLOCKED until EXTEND.md is created.
+`EXTEND.md` is optional. If present, it is loaded from:
 
 | Path | Location |
 |------|----------|
 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Project directory |
 | `$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md` | User home |
 
-**EXTEND.md Supports**: Default provider | Default quality | Default aspect ratio | Default image size | Default models | Batch worker cap | Provider-specific batch limits
+Supported preferences: default profile, default quality, default aspect ratio, default image size, default model IDs, batch worker cap, and Wavespeed throttling.
 
 Schema: `references/config/preferences-schema.md`
 
@@ -68,44 +44,88 @@ ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image cat.png
 # With aspect ratio
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "A landscape" --image out.png --ar 16:9
 
-# High quality
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --quality 2k
-
-# From prompt files
+# With prompt files
 ${BUN_X} {baseDir}/scripts/main.ts --promptfiles system.md content.md --image out.png
 
-# With reference images (Google, OpenAI, OpenRouter, or Replicate)
-${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --ref source.png
+# With reference images
+${BUN_X} {baseDir}/scripts/main.ts --prompt "Make it blue" --image out.png --ref source.png
 
-# With reference images (explicit provider/model)
-${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider google --model gemini-3-pro-image-preview --ref source.png
+# Explicit Wavespeed model
+${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --model bytedance/seedream-v5.0-lite
 
-# OpenRouter (recommended default model)
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider openrouter
-
-# OpenRouter with reference images
-${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider openrouter --model google/gemini-3.1-flash-image-preview --ref source.png
-
-# Specific provider
+# Legacy profile aliases preserved for compatibility
+${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider google
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider openai
 
-# DashScope (阿里通义万象)
-${BUN_X} {baseDir}/scripts/main.ts --prompt "一只可爱的猫" --image out.png --provider dashscope
-
-# Replicate (google/nano-banana-pro)
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate
-
-# Replicate with specific model
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate --model google/nano-banana
-
-# Batch mode with saved prompt files
+# Batch mode
 ${BUN_X} {baseDir}/scripts/main.ts --batchfile batch.json
-
-# Batch mode with explicit worker count
 ${BUN_X} {baseDir}/scripts/main.ts --batchfile batch.json --jobs 4 --json
 ```
 
-### Batch File Format
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--prompt <text>`, `-p` | Prompt text |
+| `--promptfiles <files...>` | Read prompt from files (concatenated) |
+| `--image <path>` | Output image path (required in single-image mode) |
+| `--batchfile <path>` | JSON batch file for multi-image generation |
+| `--jobs <count>` | Worker count for batch mode |
+| `--provider wavespeed\|google\|openai\|openrouter\|dashscope\|replicate` | Legacy profile selector. All profiles route through Wavespeed |
+| `--model <id>`, `-m` | Wavespeed model ID override |
+| `--ar <ratio>` | Aspect ratio (e.g. `16:9`, `1:1`, `3:4`) |
+| `--size <WxH>` | Exact size (e.g. `2048x2048`) |
+| `--quality normal\|2k` | Quality preset |
+| `--imageSize 1K\|2K\|4K` | Size tier preset |
+| `--ref <files...>` | Reference images. Routed to Wavespeed edit or edit-sequential |
+| `--n <count>` | Number of requested images. `n > 1` routes to sequential generation |
+| `--json` | JSON output |
+
+## Backend Routing
+
+The wrapper keeps the old CLI contract but routes commands by capability:
+
+| Input | Wavespeed command |
+|------|-------------------|
+| No `--ref`, `--n 1` | `generate` |
+| `--ref`, `--n 1` | `edit` |
+| No `--ref`, `--n > 1` | `generate-sequential` |
+| `--ref`, `--n > 1` | `edit-sequential` |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `WAVESPEED_API_KEY` | Wavespeed API key |
+| `WAVESPEED_IMAGE_MODEL` | Default model override |
+| `BAOYU_IMAGE_GEN_MAX_WORKERS` | Batch worker cap |
+| `BAOYU_IMAGE_GEN_WAVESPEED_CONCURRENCY` | Wavespeed concurrency override |
+| `BAOYU_IMAGE_GEN_WAVESPEED_START_INTERVAL_MS` | Delay between Wavespeed task starts |
+
+**Load Priority**: CLI args > EXTEND.md > env vars > `<cwd>/.baoyu-skills/.env` > `~/.baoyu-skills/.env`
+
+## Model Resolution
+
+Model priority:
+
+1. CLI flag: `--model <id>`
+2. EXTEND.md: `default_model.[provider]`
+3. EXTEND.md: `default_model.wavespeed`
+4. Env var: `WAVESPEED_IMAGE_MODEL`
+5. Built-in Wavespeed defaults
+
+**Agent MUST display model info** before each generation:
+- Show: `Using wavespeed / [model]`
+- Show switch hint: `Switch model: --model <id> | EXTEND.md default_model.* | env WAVESPEED_IMAGE_MODEL`
+
+## Quality and Size
+
+- `--size` wins when provided
+- Otherwise `--imageSize` maps to `1K`, `2K`, or `4K`
+- Otherwise `--quality` maps `normal -> 1K`, `2k -> 2K`
+- Aspect ratios are resolved to explicit Wavespeed sizes locally before dispatch
+
+## Batch File Format
 
 ```json
 {
@@ -115,8 +135,8 @@ ${BUN_X} {baseDir}/scripts/main.ts --batchfile batch.json --jobs 4 --json
       "id": "hero",
       "promptFiles": ["prompts/hero.md"],
       "image": "out/hero.png",
-      "provider": "replicate",
-      "model": "google/nano-banana-pro",
+      "provider": "wavespeed",
+      "model": "bytedance/seedream-v5.0-lite",
       "ar": "16:9",
       "quality": "2k"
     },
@@ -130,166 +150,10 @@ ${BUN_X} {baseDir}/scripts/main.ts --batchfile batch.json --jobs 4 --json
 }
 ```
 
-Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch file's directory. `jobs` is optional (overridden by CLI `--jobs`). Top-level array format (without `jobs` wrapper) is also accepted.
+Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch file's directory.
 
-## Options
+## Notes
 
-| Option | Description |
-|--------|-------------|
-| `--prompt <text>`, `-p` | Prompt text |
-| `--promptfiles <files...>` | Read prompt from files (concatenated) |
-| `--image <path>` | Output image path (required in single-image mode) |
-| `--batchfile <path>` | JSON batch file for multi-image generation |
-| `--jobs <count>` | Worker count for batch mode (default: auto, max from config, built-in default 10) |
-| `--provider google\|openai\|openrouter\|dashscope\|replicate` | Force provider (default: auto-detect) |
-| `--model <id>`, `-m` | Model ID (Google: `gemini-3-pro-image-preview`; OpenAI: `gpt-image-1.5`; OpenRouter: `google/gemini-3.1-flash-image-preview`) |
-| `--ar <ratio>` | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`) |
-| `--size <WxH>` | Size (e.g., `1024x1024`) |
-| `--quality normal\|2k` | Quality preset (default: `2k`) |
-| `--imageSize 1K\|2K\|4K` | Image size for Google/OpenRouter (default: from quality) |
-| `--ref <files...>` | Reference images. Supported by Google multimodal, OpenAI GPT Image edits, OpenRouter multimodal models, and Replicate |
-| `--n <count>` | Number of images |
-| `--json` | JSON output |
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key |
-| `OPENROUTER_API_KEY` | OpenRouter API key |
-| `GOOGLE_API_KEY` | Google API key |
-| `DASHSCOPE_API_KEY` | DashScope API key (阿里云) |
-| `REPLICATE_API_TOKEN` | Replicate API token |
-| `OPENAI_IMAGE_MODEL` | OpenAI model override |
-| `OPENROUTER_IMAGE_MODEL` | OpenRouter model override (default: `google/gemini-3.1-flash-image-preview`) |
-| `GOOGLE_IMAGE_MODEL` | Google model override |
-| `DASHSCOPE_IMAGE_MODEL` | DashScope model override (default: z-image-turbo) |
-| `REPLICATE_IMAGE_MODEL` | Replicate model override (default: google/nano-banana-pro) |
-| `OPENAI_BASE_URL` | Custom OpenAI endpoint |
-| `OPENROUTER_BASE_URL` | Custom OpenRouter endpoint (default: `https://openrouter.ai/api/v1`) |
-| `OPENROUTER_HTTP_REFERER` | Optional app/site URL for OpenRouter attribution |
-| `OPENROUTER_TITLE` | Optional app name for OpenRouter attribution |
-| `GOOGLE_BASE_URL` | Custom Google endpoint |
-| `DASHSCOPE_BASE_URL` | Custom DashScope endpoint |
-| `REPLICATE_BASE_URL` | Custom Replicate endpoint |
-| `BAOYU_IMAGE_GEN_MAX_WORKERS` | Override batch worker cap |
-| `BAOYU_IMAGE_GEN_<PROVIDER>_CONCURRENCY` | Override provider concurrency, e.g. `BAOYU_IMAGE_GEN_REPLICATE_CONCURRENCY` |
-| `BAOYU_IMAGE_GEN_<PROVIDER>_START_INTERVAL_MS` | Override provider start gap, e.g. `BAOYU_IMAGE_GEN_REPLICATE_START_INTERVAL_MS` |
-
-**Load Priority**: CLI args > EXTEND.md > env vars > `<cwd>/.baoyu-skills/.env` > `~/.baoyu-skills/.env`
-
-## Model Resolution
-
-Model priority (highest → lowest), applies to all providers:
-
-1. CLI flag: `--model <id>`
-2. EXTEND.md: `default_model.[provider]`
-3. Env var: `<PROVIDER>_IMAGE_MODEL` (e.g., `GOOGLE_IMAGE_MODEL`)
-4. Built-in default
-
-**EXTEND.md overrides env vars**. If both EXTEND.md `default_model.google: "gemini-3-pro-image-preview"` and env var `GOOGLE_IMAGE_MODEL=gemini-3.1-flash-image-preview` exist, EXTEND.md wins.
-
-**Agent MUST display model info** before each generation:
-- Show: `Using [provider] / [model]`
-- Show switch hint: `Switch model: --model <id> | EXTEND.md default_model.[provider] | env <PROVIDER>_IMAGE_MODEL`
-
-### OpenRouter Models
-
-Use full OpenRouter model IDs, e.g.:
-
-- `google/gemini-3.1-flash-image-preview` (recommended, supports image output and reference-image workflows)
-- `google/gemini-2.5-flash-image-preview`
-- `black-forest-labs/flux.2-pro`
-- Other OpenRouter image-capable model IDs
-
-Notes:
-
-- OpenRouter image generation uses `/chat/completions`, not the OpenAI `/images` endpoints
-- If `--ref` is used, choose a multimodal model that supports image input and image output
-- `--imageSize` maps to OpenRouter `imageGenerationOptions.size`; `--size <WxH>` is converted to the nearest OpenRouter size and inferred aspect ratio when possible
-
-### Replicate Models
-
-Supported model formats:
-
-- `owner/name` (recommended for official models), e.g. `google/nano-banana-pro`
-- `owner/name:version` (community models by version), e.g. `stability-ai/sdxl:<version>`
-
-Examples:
-
-```bash
-# Use Replicate default model
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate
-
-# Override model explicitly
-${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate --model google/nano-banana
-```
-
-## Provider Selection
-
-1. `--ref` provided + no `--provider` → auto-select Google first, then OpenAI, then OpenRouter, then Replicate
-2. `--provider` specified → use it (if `--ref`, must be `google`, `openai`, `openrouter`, or `replicate`)
-3. Only one API key available → use that provider
-4. Multiple available → default to Google
-
-## Quality Presets
-
-| Preset | Google imageSize | OpenAI Size | OpenRouter size | Replicate resolution | Use Case |
-|--------|------------------|-------------|-----------------|----------------------|----------|
-| `normal` | 1K | 1024px | 1K | 1K | Quick previews |
-| `2k` (default) | 2K | 2048px | 2K | 2K | Covers, illustrations, infographics |
-
-**Google/OpenRouter imageSize**: Can be overridden with `--imageSize 1K|2K|4K`
-
-## Aspect Ratios
-
-Supported: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `2.35:1`
-
-- Google multimodal: uses `imageConfig.aspectRatio`
-- OpenAI: maps to closest supported size
-- OpenRouter: sends `imageGenerationOptions.aspect_ratio`; if only `--size <WxH>` is given, aspect ratio is inferred automatically
-- Replicate: passes `aspect_ratio` to model; when `--ref` is provided without `--ar`, defaults to `match_input_image`
-
-## Generation Mode
-
-**Default**: Sequential generation.
-
-**Batch Parallel Generation**: When `--batchfile` contains 2 or more pending tasks, the script automatically enables parallel generation.
-
-| Mode | When to Use |
-|------|-------------|
-| Sequential (default) | Normal usage, single images, small batches |
-| Parallel batch | Batch mode with 2+ tasks |
-
-Execution choice:
-
-| Situation | Preferred approach | Why |
-|-----------|--------------------|-----|
-| One image, or 1-2 simple images | Sequential | Lower coordination overhead and easier debugging |
-| Multiple images already have saved prompt files | Batch (`--batchfile`) | Reuses finalized prompts, applies shared throttling/retries, and gives predictable throughput |
-| Each image still needs separate reasoning, prompt writing, or style exploration | Subagents | The work is still exploratory, so each image may need independent analysis before generation |
-| Output comes from `baoyu-article-illustrator` with `outline.md` + `prompts/` | Batch (`build-batch.ts` -> `--batchfile`) | That workflow already produces prompt files, so direct batch execution is the intended path |
-
-Rule of thumb:
-
-- Prefer batch over subagents once prompt files are already saved and the task is "generate all of these"
-- Use subagents only when generation is coupled with per-image thinking, rewriting, or divergent creative exploration
-
-Parallel behavior:
-
-- Default worker count is automatic, capped by config, built-in default 10
-- Provider-specific throttling is applied only in batch mode, and the built-in defaults are tuned for faster throughput while still avoiding obvious RPM bursts
-- You can override worker count with `--jobs <count>`
-- Each image retries automatically up to 3 attempts
-- Final output includes success count, failure count, and per-image failure reasons
-
-## Error Handling
-
-- Missing API key → error with setup instructions
-- Generation failure → auto-retry up to 3 attempts per image
-- Invalid aspect ratio → warning, proceed with default
-- Reference images with unsupported provider/model → error with fix hint
-
-## Extension Support
-
-Custom configurations via EXTEND.md. See **Preferences** section for paths and supported options.
+- The script prefers a globally installed `wavespeed` binary when available.
+- Otherwise it falls back to `npx -y wavespeed-cli`.
+- Legacy `--provider` aliases are preserved to avoid breaking downstream skills, but all execution goes through Wavespeed.

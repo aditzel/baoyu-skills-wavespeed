@@ -27,7 +27,7 @@ Skills that require image generation MUST delegate to available image generation
 4. On failure, auto-retry once before reporting error
 ```
 
-**Batch Parallel** (`baoyu-image-gen` only): concurrent workers with per-provider throttling via `batch.max_workers` in EXTEND.md.
+**Batch Parallel** (`baoyu-image-gen` only): concurrent workers with Wavespeed throttling via `batch.max_workers` and `batch.provider_limits.wavespeed` in EXTEND.md.
 
 ## Output Path Convention
 

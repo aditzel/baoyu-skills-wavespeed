@@ -29,8 +29,8 @@ Options:
   --prompts <path>     Path to prompts directory
   --output <path>      Path to output batch.json
   --images-dir <path>  Directory for generated images
-  --provider <name>    Provider for baoyu-image-gen batch tasks (default: replicate)
-  --model <id>         Model for baoyu-image-gen batch tasks (default: google/nano-banana-pro)
+  --provider <name>    Profile for baoyu-image-gen batch tasks (default: wavespeed)
+  --model <id>         Wavespeed model for baoyu-image-gen batch tasks (default: bytedance/seedream-v5.0-lite)
   --ar <ratio>         Aspect ratio for all tasks (default: 16:9)
   --quality <level>    Quality for all tasks (default: 2k)
   --jobs <count>       Recommended worker count metadata (optional)
@@ -43,8 +43,8 @@ function parseArgs(argv: string[]): CliArgs {
     promptsDir: null,
     outputPath: null,
     imagesDir: null,
-    provider: "replicate",
-    model: "google/nano-banana-pro",
+    provider: "wavespeed",
+    model: "bytedance/seedream-v5.0-lite",
     aspectRatio: "16:9",
     quality: "2k",
     jobs: null,
